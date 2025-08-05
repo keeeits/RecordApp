@@ -14,36 +14,6 @@ app = Flask(__name__)
 app.secret_key              = os.environ.get('SECRET_KEY', 'your_secret_key_here')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# ── アプリ読み込み時に必ず DB 初期化 ─────────────────────────────────
-with app.app_context():
-    def init_db():
-        db = get_db()
-        db.executescript('''
-            CREATE TABLE IF NOT EXISTS records (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                artist TEXT NOT NULL,
-                album TEXT NOT NULL,
-                genre TEXT,
-                year TEXT,
-                store TEXT,
-                filename TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS genres (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE,
-                last_used TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS stores (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE,
-                last_used TIMESTAMP
-            );
-        ''')
-        db.commit()
-    # ※ get_db() 定義より後に init_db を呼び出すために一時的に定義を移動しています
-    init_db()
-
 # ── DB ヘルパー ───────────────────────────────────────────────────
 def get_db():
     db = getattr(g, '_database', None)
@@ -58,6 +28,39 @@ def close_db(exc):
     if db:
         db.close()
 
+# ── 初期化関数 ───────────────────────────────────────────────────
+def init_db():
+    db = get_db()
+    db.executescript('''
+        CREATE TABLE IF NOT EXISTS records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            artist TEXT NOT NULL,
+            album TEXT NOT NULL,
+            genre TEXT,
+            year TEXT,
+            store TEXT,
+            filename TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS genres (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            last_used TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS stores (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            last_used TIMESTAMP
+        );
+    ''')
+    db.commit()
+
+# アプリ起動時／インポート時に必ず DB テーブルを初期化
+with app.app_context():
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    init_db()
+
+# ── ユーティリティ ────────────────────────────────────────────────
 def update_choice(table, name):
     if not name:
         return
@@ -88,7 +91,6 @@ def root():
 def login():
     error = False
     if request.method == 'POST':
-        # 単に「keito0301」を入力するとログイン
         if request.form.get('username') == 'keito0301':
             session['logged_in'] = True
             return redirect(url_for('index'))
@@ -106,36 +108,30 @@ def index():
         return redirect(url_for('login'))
 
     db = get_db()
-
-    # カラム選択
     cols = request.args.getlist('columns') or ['artist', 'album', 'created_at']
 
-    # 検索条件（AND マッチ）
+    # 検索条件（AND で結合）
     where, params = [], []
     free = request.args.get('search','').strip()
     if free:
         where.append("(artist LIKE ? OR album LIKE ?)")
         params += [f'%{free}%'] * 2
 
-    # 詳細検索
+    # 詳細検索項目
     a = request.args.get('adv_artist','').strip()
-    if a:
-        where.append("artist LIKE ?");    params.append(f'%{a}%')
+    if a: where.append("artist LIKE ?");    params.append(f'%{a}%')
     b = request.args.get('adv_album','').strip()
-    if b:
-        where.append("album LIKE ?");     params.append(f'%{b}%')
+    if b: where.append("album LIKE ?");     params.append(f'%{b}%')
     g0 = request.args.get('adv_genre','').strip()
-    if g0:
-        where.append("genre = ?");        params.append(g0)
+    if g0: where.append("genre = ?");        params.append(g0)
     y1 = request.args.get('adv_year_start','').strip()
     y2 = request.args.get('adv_year_end','').strip()
     if y1 and y2:
         where.append("year BETWEEN ? AND ?"); params += [y1, y2]
     elif y1:
-        where.append("year = ?");          params.append(y1)
+        where.append("year = ?");           params.append(y1)
     s0 = request.args.get('adv_store','').strip()
-    if s0:
-        where.append("store = ?");        params.append(s0)
+    if s0: where.append("store = ?");      params.append(s0)
     d1 = request.args.get('adv_date_start','').strip()
     d2 = request.args.get('adv_date_end','').strip()
     if d1 and d2:
@@ -145,18 +141,16 @@ def index():
         where.append("strftime('%Y-%m', created_at) = ?")
         params.append(d1)
 
-    # SQL 実行
     sql = "SELECT * FROM records"
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY created_at DESC"
     records = db.execute(sql, params).fetchall()
 
-    # プルダウン用データ
     genres = fetch_choices('genres')
     stores = fetch_choices('stores')
 
-    # 登録年月プルダウン（月単位）生成
+    # 登録年月プルダウン生成
     min_date = db.execute("SELECT MIN(created_at) AS m FROM records").fetchone()['m']
     months = []
     if min_date:
@@ -170,17 +164,14 @@ def index():
                 m = 1; y += 1
 
     return render_template('index.html',
-        records=records,
-        columns=cols,
+        records=records, columns=cols,
         all_columns=['artist','album','genre','year','store','created_at','filename'],
-        genres=genres,
-        stores=stores,
-        search=free,
-        adv_params=request.args,
+        genres=genres, stores=stores,
+        search=free, adv_params=request.args,
         months=months
     )
 
-@app.route('/add', methods=['GET', 'POST'])
+@app.route('/add', methods=['GET','POST'])
 def add():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
@@ -217,7 +208,7 @@ def detail(record_id):
     ).fetchone()
     return render_template('detail.html', record=record)
 
-@app.route('/record/<int:record_id>/edit', methods=['GET', 'POST'])
+@app.route('/record/<int:record_id>/edit', methods=['GET','POST'])
 def edit(record_id):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
@@ -248,7 +239,7 @@ def edit(record_id):
         return redirect(url_for('index'))
     return render_template('edit.html', record=record, genres=genres, stores=stores)
 
-@app.route('/record/<int:record_id>/delete', methods=['GET', 'POST'])
+@app.route('/record/<int:record_id>/delete', methods=['GET','POST'])
 def delete(record_id):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
@@ -264,7 +255,7 @@ def delete(record_id):
         return redirect(url_for('detail', record_id=record_id))
     return render_template('confirm_delete.html', record=record)
 
-# ── アプリ起動 ─────────────────────────────────────────────────
+# ── デバッグサーバ起動 ───────────────────────────────────────────
 if __name__ == '__main__':
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    # すでにインポート時に init_db＆static/images フォルダ生成済み
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
