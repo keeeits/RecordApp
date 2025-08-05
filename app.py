@@ -108,7 +108,7 @@ def index():
         return redirect(url_for('login'))
 
     db = get_db()
-    cols = request.args.getlist('columns') or ['artist', 'album', 'created_at']
+    cols = request.args.getlist('columns') or ['artist', 'filename']
 
     # 検索条件（AND で結合）
     where, params = [], []
