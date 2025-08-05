@@ -8,13 +8,11 @@
       <input type="text" name="artist" placeholder="アーティスト名" required>
     </label>
   </div>
-
   <div class="form-group">
     <label>アルバム名
       <input type="text" name="album" placeholder="アルバム名" required>
     </label>
   </div>
-
   <div class="form-group">
     <label>ジャンル
       <input list="genres" name="genre" placeholder="選択または入力">
@@ -23,13 +21,11 @@
       </datalist>
     </label>
   </div>
-
   <div class="form-group">
     <label>年代
       <input type="text" name="year" placeholder="例: 1990s">
     </label>
   </div>
-
   <div class="form-group">
     <label>購入店舗
       <input list="stores" name="store" placeholder="選択または入力">
@@ -38,14 +34,14 @@
       </datalist>
     </label>
   </div>
-
   <div class="form-group">
-    <label>ジャケット画像
-      <input type="file" name="image" accept="image/*" capture="environment">
-    </label>
+    <p>ジャケット画像:</p>
+    <label><input type="radio" name="photoOption" id="optCamera"  value="camera" checked> カメラで撮影</label>
+    <label><input type="radio" name="photoOption" id="optLibrary" value="library"> ライブラリから選択</label>
+    <input type="file" id="imageInput" name="image" accept="image/*">
   </div>
-
   <button type="submit">登録</button>
   <a href="{{ url_for('index') }}">一覧に戻る</a>
 </form>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% endblock %}

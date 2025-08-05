@@ -2,34 +2,51 @@
 {% block title %}編集{% endblock %}
 {% block header %}レコード編集{% endblock %}
 {% block content %}
-<form method="post" enctype="multipart/form-data">
-  <label>アーティスト名:<input type="text" name="artist" value="{{ record.artist }}" required></label><br>
-  <label>アルバム名:<input type="text" name="album" value="{{ record.album }}" required></label><br>
-
-  <label>ジャンル:
-    <input list="genres" name="genre" value="{{ record.genre }}" placeholder="選択または入力">
-    <datalist id="genres">{% for g in genres %}<option value="{{ g }}">{% endfor %}</datalist>
-  </label><br>
-
-  <label>年代:<input type="text" name="year" value="{{ record.year }}" placeholder="例: 1990s"></label><br>
-
-  <label>購入店舗:
-    <input list="stores" name="store" value="{{ record.store }}" placeholder="選択または入力">
-    <datalist id="stores">{% for s in stores %}<option value="{{ s }}">{% endfor %}</datalist>
-  </label><br>
-
+<form method="post" enctype="multipart/form-data" class="record-form">
+  <div class="form-group">
+    <label>アーティスト名
+      <input type="text" name="artist" value="{{ record.artist }}" required>
+    </label>
+  </div>
+  <div class="form-group">
+    <label>アルバム名
+      <input type="text" name="album" value="{{ record.album }}" required>
+    </label>
+  </div>
+  <div class="form-group">
+    <label>ジャンル
+      <input list="genres" name="genre" value="{{ record.genre }}" placeholder="選択または入力">
+      <datalist id="genres">
+        {% for g in genres %}<option value="{{ g }}">{% endfor %}
+      </datalist>
+    </label>
+  </div>
+  <div class="form-group">
+    <label>年代
+      <input type="text" name="year" value="{{ record.year }}" placeholder="例: 1990s">
+    </label>
+  </div>
+  <div class="form-group">
+    <label>購入店舗
+      <input list="stores" name="store" value="{{ record.store }}" placeholder="選択または入力">
+      <datalist id="stores">
+        {% for s in stores %}<option value="{{ s }}">{% endfor %}
+      </datalist>
+    </label>
+  </div>
   {% if record.filename %}
     <p>現在の画像:<br>
-    <img src="{{ url_for('static', filename='images/'~record.filename) }}" style="max-width:150px;"></p>
+      <img src="{{ url_for('static', filename='images/'~record.filename) }}" style="max-width:150px;">
+    </p>
   {% endif %}
-  <label>新しい画像:
-    <input type="file" name="image" accept="image/*" capture="environment">
-  </label><br>
-
+  <div class="form-group">
+    <p>ジャケット画像変更:</p>
+    <label><input type="radio" name="photoOption" id="optCamera"  value="camera" checked> カメラで撮影</label>
+    <label><input type="radio" name="photoOption" id="optLibrary" value="library"> ライブラリから選択</label>
+    <input type="file" id="imageInput" name="image" accept="image/*">
+  </div>
   <button type="submit">更新</button>
-</form>
-<p>
-  <a href="{{ url_for('delete', record_id=record.id) }}">削除</a> |
   <a href="{{ url_for('index') }}">一覧に戻る</a>
-</p>
+</form>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% endblock %}
