@@ -11,8 +11,38 @@ UPLOAD_FOLDER  = os.path.join(BASE_DIR, 'static', 'images')
 ALLOWED_EXT    = {'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
-app.secret_key              = 'your_secret_key_here'
+app.secret_key              = os.environ.get('SECRET_KEY', 'your_secret_key_here')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# ── アプリ読み込み時に必ず DB 初期化 ─────────────────────────────────
+with app.app_context():
+    def init_db():
+        db = get_db()
+        db.executescript('''
+            CREATE TABLE IF NOT EXISTS records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                artist TEXT NOT NULL,
+                album TEXT NOT NULL,
+                genre TEXT,
+                year TEXT,
+                store TEXT,
+                filename TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS genres (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE,
+                last_used TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS stores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE,
+                last_used TIMESTAMP
+            );
+        ''')
+        db.commit()
+    # ※ get_db() 定義より後に init_db を呼び出すために一時的に定義を移動しています
+    init_db()
 
 # ── DB ヘルパー ───────────────────────────────────────────────────
 def get_db():
@@ -27,32 +57,6 @@ def close_db(exc):
     db = getattr(g, '_database', None)
     if db:
         db.close()
-
-def init_db():
-    db = get_db()
-    db.executescript('''
-        CREATE TABLE IF NOT EXISTS records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            artist TEXT NOT NULL,
-            album TEXT NOT NULL,
-            genre TEXT,
-            year TEXT,
-            store TEXT,
-            filename TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS genres (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
-            last_used TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS stores (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
-            last_used TIMESTAMP
-        );
-    ''')
-    db.commit()
 
 def update_choice(table, name):
     if not name:
@@ -103,42 +107,35 @@ def index():
 
     db = get_db()
 
-    # --- カラム選択 ---
+    # カラム選択
     cols = request.args.getlist('columns') or ['artist', 'album', 'created_at']
 
-    # --- 検索条件 ---
+    # 検索条件（AND マッチ）
     where, params = [], []
-
-    # フリーワード検索
     free = request.args.get('search','').strip()
     if free:
         where.append("(artist LIKE ? OR album LIKE ?)")
         params += [f'%{free}%'] * 2
 
-    # 詳細検索（全条件を AND）
+    # 詳細検索
     a = request.args.get('adv_artist','').strip()
     if a:
         where.append("artist LIKE ?");    params.append(f'%{a}%')
-
     b = request.args.get('adv_album','').strip()
     if b:
         where.append("album LIKE ?");     params.append(f'%{b}%')
-
     g0 = request.args.get('adv_genre','').strip()
     if g0:
         where.append("genre = ?");        params.append(g0)
-
     y1 = request.args.get('adv_year_start','').strip()
     y2 = request.args.get('adv_year_end','').strip()
     if y1 and y2:
         where.append("year BETWEEN ? AND ?"); params += [y1, y2]
     elif y1:
         where.append("year = ?");          params.append(y1)
-
     s0 = request.args.get('adv_store','').strip()
     if s0:
         where.append("store = ?");        params.append(s0)
-
     d1 = request.args.get('adv_date_start','').strip()
     d2 = request.args.get('adv_date_end','').strip()
     if d1 and d2:
@@ -148,18 +145,18 @@ def index():
         where.append("strftime('%Y-%m', created_at) = ?")
         params.append(d1)
 
-    # --- SQL 組立 & 実行 ---
+    # SQL 実行
     sql = "SELECT * FROM records"
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY created_at DESC"
     records = db.execute(sql, params).fetchall()
 
-    # プルダウン用データ取得
+    # プルダウン用データ
     genres = fetch_choices('genres')
     stores = fetch_choices('stores')
 
-    # 登録年月プルダウンの選択肢生成
+    # 登録年月プルダウン（月単位）生成
     min_date = db.execute("SELECT MIN(created_at) AS m FROM records").fetchone()['m']
     months = []
     if min_date:
@@ -270,6 +267,4 @@ def delete(record_id):
 # ── アプリ起動 ─────────────────────────────────────────────────
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    with app.app_context():
-        init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
