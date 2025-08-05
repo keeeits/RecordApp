@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}編集確認{% endblock %}
+{% block header %}編集内容確認{% endblock %}
+{% block content %}
+<h3>以下の内容で更新しますか？</h3>
+<ul>
+  <li>アーティスト: {{ new.artist }}</li>
+  <li>アルバム: {{ new.album }}</li>
+  <li>ジャンル: {{ new.genre or '-' }}</li>
+  <li>年代: {{ new.year or '-' }}</li>
+  <li>購入店舗: {{ new.store or '-' }}</li>
+  <li>登録日（元）: {{ record.created_at[:10] }}</li>
+  {% if new.filename %}
+    <li>画像:<br>
+      <img src="{{ url_for('static', filename='images/'~new.filename) }}" style="max-width:200px;">
+    </li>
+  {% endif %}
+</ul>
+<form method="post">
+  <button type="submit" name="confirm" value="yes">はい、更新する</button>
+  <button type="submit" name="confirm" value="no">キャンセル</button>
+</form>
+{% endblock %}

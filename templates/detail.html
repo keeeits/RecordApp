@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}詳細{% endblock %}
+{% block header %}レコード詳細{% endblock %}
+{% block content %}
+<ul>
+  <li>アーティスト: {{ record.artist }}</li>
+  <li>アルバム: {{ record.album }}</li>
+  <li>ジャンル: {{ record.genre or '-' }}</li>
+  <li>年代: {{ record.year or '-' }}</li>
+  <li>購入店舗: {{ record.store or '-' }}</li>
+  <li>登録日: {{ record.created_at[:10] }}</li>
+  {% if record.filename %}
+    <li>画像:<br>
+      <img src="{{ url_for('static', filename='images/'~record.filename) }}" style="max-width:200px;">
+    </li>
+  {% endif %}
+</ul>
+<p>
+  <a href="{{ url_for('edit', record_id=record.id) }}">編集</a> |
+  <a href="{{ url_for('delete', record_id=record.id) }}">削除</a> |
+  <a href="{{ url_for('index') }}">一覧に戻る</a>
+</p>
+{% endblock %}

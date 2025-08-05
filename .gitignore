@@ -1,0 +1,19 @@
+cat > .gitignore <<EOF
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# 仮想環境
+.venv/
+env/
+
+# SQLite
+record.db
+
+# アップロード画像
+static/images/*
+
+# macOS／エディタ固有
+.DS_Store
+*.swp
+EOF

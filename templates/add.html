@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}新規登録{% endblock %}
+{% block header %}新規レコード登録{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="record-form">
+  <div class="form-group">
+    <label>アーティスト名
+      <input type="text" name="artist" placeholder="アーティスト名" required>
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label>アルバム名
+      <input type="text" name="album" placeholder="アルバム名" required>
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label>ジャンル
+      <input list="genres" name="genre" placeholder="選択または入力">
+      <datalist id="genres">
+        {% for g in genres %}<option value="{{ g }}">{% endfor %}
+      </datalist>
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label>年代
+      <input type="text" name="year" placeholder="例: 1990s">
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label>購入店舗
+      <input list="stores" name="store" placeholder="選択または入力">
+      <datalist id="stores">
+        {% for s in stores %}<option value="{{ s }}">{% endfor %}
+      </datalist>
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label>ジャケット画像
+      <input type="file" name="image" accept="image/*" capture="environment">
+    </label>
+  </div>
+
+  <button type="submit">登録</button>
+  <a href="{{ url_for('index') }}">一覧に戻る</a>
+</form>
+{% endblock %}

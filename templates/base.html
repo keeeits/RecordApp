@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} - RecordApp</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>{% block header %}{% endblock %}</h1>
+    <nav>
+      <a href="{{ url_for('index') }}">一覧</a> |
+      <a href="{{ url_for('add') }}">新規登録</a> |
+      <a href="{{ url_for('logout') }}">ログアウト</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <p>&copy; 2025 Record App</p>
+  </footer>
+</body>
+</html>

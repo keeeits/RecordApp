@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block title %}レコード一覧{% endblock %}
+{% block header %}レコード一覧{% endblock %}
+
+{% block content %}
+<main class="content">
+
+  <!-- 検索フォーム -->
+  <form method="get" action="{{ url_for('index') }}" class="search-form">
+    <div class="form-group">
+      <input type="text" name="search" placeholder="フリーワード検索" value="{{ search }}">
+      <button type="submit">検索</button>
+    </div>
+
+    <!-- 詳細検索 -->
+    <details class="form-details">
+      <summary>詳細検索</summary>
+      <div class="form-details-content">
+        <label>アーティスト：
+          <input type="text" name="adv_artist" value="{{ adv_params.get('adv_artist','') }}">
+        </label>
+        <label>アルバム：
+          <input type="text" name="adv_album" value="{{ adv_params.get('adv_album','') }}">
+        </label>
+        <label>ジャンル：
+          <select name="adv_genre">
+            <option value="">──</option>
+            {% for g in genres %}
+              <option value="{{ g }}" {% if adv_params.get('adv_genre')==g %}selected{% endif %}>{{ g }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>年代：
+          <input type="text" name="adv_year_start" size="4" placeholder="開始" value="{{ adv_params.get('adv_year_start','') }}"> 〜
+          <input type="text" name="adv_year_end"   size="4" placeholder="終了" value="{{ adv_params.get('adv_year_end','') }}">
+        </label>
+        <label>店舗：
+          <select name="adv_store">
+            <option value="">──</option>
+            {% for s in stores %}
+              <option value="{{ s }}" {% if adv_params.get('adv_store')==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>登録年月：
+          <select name="adv_date_start">
+            <option value="">──</option>
+            {% for m in months %}
+              <option value="{{ m }}" {% if adv_params.get('adv_date_start')==m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+          〜
+          <select name="adv_date_end">
+            <option value="">──</option>
+            {% for m in months %}
+              <option value="{{ m }}" {% if adv_params.get('adv_date_end')==m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+    </details>
+
+    <!-- 表示列選択 -->
+    <details class="form-details">
+      <summary>表示列選択</summary>
+      <div class="form-details-content">
+        {% for col in all_columns %}
+          <label>
+            <input type="checkbox" name="columns" value="{{ col }}" {% if col in columns %}checked{% endif %}>
+            {{ {
+              'artist':'アーティスト','album':'アルバム','genre':'ジャンル',
+              'year':'年代','store':'購入店舗','created_at':'登録日','filename':'写真'
+            }[col] }}
+          </label>
+        {% endfor %}
+        <button type="submit">列を適用</button>
+      </div>
+    </details>
+  </form>
+
+  <!-- レコード一覧テーブル -->
+  <div class="table-wrapper">
+    <table class="record-table">
+      <thead>
+        <tr>
+          {% for col in columns %}
+            <th>
+              {{ {
+                'artist':'アーティスト','album':'アルバム','genre':'ジャンル',
+                'year':'年代','store':'購入店舗','created_at':'登録日','filename':'写真'
+              }[col] }}
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr onclick="location.href='{{ url_for('detail', record_id=r.id) }}'">
+          {% for col in columns %}
+            <td>
+              {% if col=='created_at' %}
+                {{ r[col][:10] }}
+              {% elif col=='filename' and r[col] %}
+                <img src="{{ url_for('static', filename='images/'~r[col]) }}" class="thumb">
+              {% else %}
+                {{ r[col] or '–' }}
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</main>
+{% endblock %}
